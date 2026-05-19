@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Flappy Bird — ZapPlay</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#0a0a0f;display:flex;align-items:center;justify-content:center;height:100vh;overflow:hidden}
+canvas{border-radius:12px;border:2px solid #1a1a2e;display:block;max-width:100vw;max-height:100vh}
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+<script>
+const c = document.getElementById('c');
+const ctx = c.getContext('2d');
+c.width = 360; c.height = 600;
+
+const W = c.width, H = c.height;
+const GRAVITY = 0.5, JUMP = -9, PIPE_W = 52, GAP = 160, PIPE_SPEED = 2.5;
+
+let bird, pipes, score, best, state, frame;
+// state: 'start' | 'play' | 'dead'
+
+function init() {
+  bird = { x:80, y:H/2, vy:0, r:18, rot:0 };
+  pipes = [];
+  score = 0; frame = 0;
+  state = 'start';
+}
+
+function spawnPipe() {
+  const top = 80 + Math.random() * (H - GAP - 160);
+  pipes.push({ x:W, top, scored:false });
+}
+
+function jump() {
+  if (state==='start') { state='play'; bird.vy=JUMP; return; }
+  if (state==='play') bird.vy = JUMP;
+  if (state==='dead') { init(); state='play'; bird.vy=JUMP; }
+}
+
+function update() {
+  if (state!=='play') return;
+  frame++;
+
+  // Bird physics
+  bird.vy += GRAVITY;
+  bird.y += bird.vy;
+  bird.rot = Math.min(Math.max(bird.vy * 3, -30), 90);
+
+  // Spawn pipes
+  if (frame % 90 === 0) spawnPipe();
+
+  // Move pipes
+  pipes.forEach(p => {
+    p.x -= PIPE_SPEED;
+    if (!p.scored && p.x + PIPE_W < bird.x) {
+      score++;
+      best = Math.max(best||0, score);
+      localStorage.setItem('zp_flappy_best', best);
+      p.scored = true;
+    }
+  });
+  pipes = pipes.filter(p => p.x > -PIPE_W);
+
+  // Collisions
+  if (bird.y + bird.r > H - 60 || bird.y - bird.r < 0) { state='dead'; return; }
+  for (const p of pipes) {
+    const bx=bird.x, by=bird.y, br=bird.r-4;
+    const inX = bx+br > p.x && bx-br < p.x+PIPE_W;
+    if (inX && (by-br < p.top || by+br > p.top+GAP)) { state='dead'; return; }
+  }
+}
+
+function draw() {
+  // Sky gradient
+  const sky = ctx.createLinearGradient(0,0,0,H);
+  sky.addColorStop(0,'#0a1628');
+  sky.addColorStop(1,'#0f2040');
+  ctx.fillStyle = sky;
+  ctx.fillRect(0,0,W,H);
+
+  // Stars
+  ctx.fillStyle='rgba(255,255,255,0.4)';
+  for(let i=0;i<40;i++){
+    const sx=(i*137+frame*0.1)%W, sy=(i*97)%300;
+    ctx.fillRect(sx,sy,1,1);
+  }
+
+  // Ground
+  ctx.fillStyle='#1a3a0a';
+  ctx.fillRect(0,H-60,W,60);
+  ctx.fillStyle='#2a5a0a';
+  ctx.fillRect(0,H-60,W,8);
+
+  // Pipes
+  pipes.forEach(p => {
+    // Top pipe
+    const topGrad = ctx.createLinearGradient(p.x,0,p.x+PIPE_W,0);
+    topGrad.addColorStop(0,'#1a4a0a');
+    topGrad.addColorStop(0.3,'#2a7a0a');
+    topGrad.addColorStop(1,'#1a4a0a');
+    ctx.fillStyle = topGrad;
+    ctx.beginPath();
+    ctx.roundRect(p.x, 0, PIPE_W, p.top-10, [0,0,8,8]);
+    ctx.fill();
+    // Top cap
+    ctx.fillStyle='#3a9a0a';
+    ctx.beginPath();
+    ctx.roundRect(p.x-5, p.top-24, PIPE_W+10, 18, 5);
+    ctx.fill();
+
+    // Bottom pipe
+    ctx.fillStyle = topGrad;
+    ctx.beginPath();
+    ctx.roundRect(p.x, p.top+GAP+10, PIPE_W, H-p.top-GAP-70, [8,8,0,0]);
+    ctx.fill();
+    // Bottom cap
+    ctx.fillStyle='#3a9a0a';
+    ctx.beginPath();
+    ctx.roundRect(p.x-5, p.top+GAP+6, PIPE_W+10, 18, 5);
+    ctx.fill();
+  });
+
+  // Bird
+  ctx.save();
+  ctx.translate(bird.x, bird.y);
+  ctx.rotate(bird.rot * Math.PI/180);
+
+  // Body
+  ctx.fillStyle = '#e8ff47';
+  ctx.beginPath();
+  ctx.ellipse(0,0,bird.r,bird.r-3,0,0,Math.PI*2);
+  ctx.fill();
+
+  // Wing
+  ctx.fillStyle = '#b8cc30';
+  ctx.beginPath();
+  const wingY = Math.sin(frame*0.3)*4;
+  ctx.ellipse(-6, wingY, 10, 7, -0.3, 0, Math.PI*2);
+  ctx.fill();
+
+  // Eye
+  ctx.fillStyle='#fff';
+  ctx.beginPath();
+  ctx.arc(8,-4,6,0,Math.PI*2);
+  ctx.fill();
+  ctx.fillStyle='#000';
+  ctx.beginPath();
+  ctx.arc(9,-4,3,0,Math.PI*2);
+  ctx.fill();
+
+  // Beak
+  ctx.fillStyle='#ff8844';
+  ctx.beginPath();
+  ctx.moveTo(14,-2);
+  ctx.lineTo(22,0);
+  ctx.lineTo(14,4);
+  ctx.closePath();
+  ctx.fill();
+
+  ctx.restore();
+
+  // Score
+  ctx.fillStyle='#fff';
+  ctx.font='bold 36px Segoe UI';
+  ctx.textAlign='center';
+  ctx.fillText(score, W/2, 60);
+  ctx.font='14px Segoe UI';
+  ctx.fillStyle='rgba(255,255,255,0.5)';
+  ctx.fillText('Best: '+(best||0), W/2, 82);
+
+  // Start screen
+  if (state==='start') {
+    ctx.fillStyle='rgba(0,0,0,0.5)';
+    ctx.fillRect(0,0,W,H);
+    ctx.fillStyle='#e8ff47';
+    ctx.font='bold 48px Segoe UI';
+    ctx.textAlign='center';
+    ctx.fillText('FLAPPY', W/2, H/2-60);
+    ctx.fillStyle='#fff';
+    ctx.font='bold 28px Segoe UI';
+    ctx.fillText('⚡ BIRD', W/2, H/2-20);
+    ctx.font='16px Segoe UI';
+    ctx.fillStyle='rgba(255,255,255,0.7)';
+    ctx.fillText('Tap or press Space to fly', W/2, H/2+30);
+
+    // Bounce animation for bird
+    bird.y = H/2 + Math.sin(Date.now()/400)*15;
+  }
+
+  // Dead screen
+  if (state==='dead') {
+    ctx.fillStyle='rgba(0,0,0,0.6)';
+    ctx.fillRect(0,0,W,H);
+
+    ctx.fillStyle='#ff4757';
+    ctx.font='bold 42px Segoe UI';
+    ctx.textAlign='center';
+    ctx.fillText('GAME OVER', W/2, H/2-50);
+
+    ctx.fillStyle='#fff';
+    ctx.font='bold 28px Segoe UI';
+    ctx.fillText('Score: '+score, W/2, H/2);
+
+    ctx.fillStyle='#e8ff47';
+    ctx.font='bold 20px Segoe UI';
+    ctx.fillText('Best: '+(best||0), W/2, H/2+36);
+
+    ctx.fillStyle='rgba(255,255,255,0.6)';
+    ctx.font='15px Segoe UI';
+    ctx.fillText('Tap to play again', W/2, H/2+80);
+  }
+}
+
+function loop() {
+  update();
+  draw();
+  requestAnimationFrame(loop);
+}
+
+// Input
+document.addEventListener('keydown', e => {
+  if (e.code==='Space'||e.code==='ArrowUp') { jump(); e.preventDefault(); }
+});
+c.addEventListener('click', jump);
+c.addEventListener('touchstart', e => { jump(); e.preventDefault(); }, {passive:false});
+
+best = parseInt(localStorage.getItem('zp_flappy_best')||'0');
+init();
+loop();
+</script>
+</body>
+</html>

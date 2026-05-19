@@ -1,0 +1,36 @@
+{
+  "version": 2,
+  "builds": [
+    { "src": "index.html",   "use": "@vercel/static" },
+    { "src": "public/**",    "use": "@vercel/static" },
+    { "src": "api/[^_]*.js", "use": "@vercel/node"   }
+  ],
+  "routes": [
+    { "src": "/public/(.*)",       "dest": "/public/$1"        },
+    { "src": "/api/games(.*)",     "dest": "/api/games.js"     },
+    { "src": "/api/auth(.*)",      "dest": "/api/auth.js"      },
+    { "src": "/api/favorites(.*)", "dest": "/api/favorites.js" },
+    { "src": "/api/play(.*)",      "dest": "/api/play.js"      },
+    { "src": "/api/profile(.*)",   "dest": "/api/profile.js"   },
+    { "src": "/api/ratings(.*)",   "dest": "/api/ratings.js"   },
+    { "src": "/(.*)",              "dest": "/index.html"       }
+  ],
+  "headers": [
+    {
+      "source": "/games/(.*)",
+      "headers": [
+        { "key": "X-Frame-Options", "value": "ALLOWALL" },
+        { "key": "Content-Security-Policy", "value": "frame-ancestors *" }
+      ]
+    },
+    {
+      "source": "/(.*)",
+      "headers": [
+        { "key": "X-Content-Type-Options",   "value": "nosniff" },
+        { "key": "X-XSS-Protection",          "value": "1; mode=block" },
+        { "key": "Referrer-Policy",           "value": "strict-origin-when-cross-origin" },
+        { "key": "Strict-Transport-Security", "value": "max-age=63072000; includeSubDomains; preload" }
+      ]
+    }
+  ]
+}

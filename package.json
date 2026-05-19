@@ -1,0 +1,16 @@
+{
+  "name": "zapplay",
+  "version": "1.0.0",
+  "description": "Professional free browser games platform",
+  "private": true,
+  "type": "module",
+  "engines": { "node": ">=18.0.0" },
+  "scripts": {
+    "dev":    "npx serve . -p 3000 --no-clipboard",
+    "deploy": "vercel --prod"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.39.0",
+    "serve": "^14.2.0"
+  }
+}

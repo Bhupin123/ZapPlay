@@ -1,0 +1,327 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<meta name="description" content="ZapPlay – Play hundreds of free HTML5 games instantly in your browser. No download required."/>
+<title>ZapPlay – Free Browser Games</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet"/>
+<link rel="stylesheet" href="/public/style.css"/>
+</head>
+<body>
+
+<!-- LOADING SCREEN -->
+<div class="loading-overlay" id="loadingScreen">
+  <svg width="44" height="44" viewBox="0 0 36 36" fill="none"><rect width="36" height="36" rx="9" fill="#e8ff47"/><path d="M21 5L9 21h9.5l-3.5 10.5L28 15H18.5L21 5Z" fill="#000"/></svg>
+  <div class="loading-text">Loading ZapPlay…</div>
+</div>
+
+<!-- AUTH MODAL -->
+<div class="modal-overlay" id="authModal">
+  <div class="modal">
+    <button class="modal-close" onclick="closeAuth()">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+    </button>
+    <div class="modal-logo">
+      <svg width="28" height="28" viewBox="0 0 36 36" fill="none"><rect width="36" height="36" rx="9" fill="#e8ff47"/><path d="M21 5L9 21h9.5l-3.5 10.5L28 15H18.5L21 5Z" fill="#000"/></svg>
+      <div class="modal-logo-text">Zap<span>Play</span></div>
+    </div>
+    <div class="auth-tabs" id="authTabs">
+      <button class="auth-tab on" onclick="switchTab('signin')">Sign In</button>
+      <button class="auth-tab" onclick="switchTab('signup')">Create Account</button>
+    </div>
+    <!-- SIGN IN -->
+    <div id="signinForm">
+      <div class="form-group">
+        <label class="form-label">Email Address</label>
+        <input class="form-input" id="siEmail" type="email" placeholder="you@example.com" autocomplete="email"/>
+        <div class="form-error" id="siEmailErr"></div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Password</label>
+        <input class="form-input" id="siPassword" type="password" placeholder="Enter your password" autocomplete="current-password"/>
+        <div class="form-error" id="siPasswordErr"></div>
+      </div>
+      <div style="text-align:right;margin-bottom:16px">
+        <button onclick="showForgotPassword()" class="link-btn">Forgot password?</button>
+      </div>
+      <button class="form-btn" id="signinBtn" onclick="handleSignIn()">Sign In</button>
+      <div class="auth-switch">Don't have an account? <button onclick="switchTab('signup')">Create one free</button></div>
+    </div>
+    <!-- SIGN UP -->
+    <div id="signupForm" style="display:none">
+      <div class="form-group">
+        <label class="form-label">Username</label>
+        <input class="form-input" id="suUsername" type="text" placeholder="Choose a username" autocomplete="username" oninput="validateUsername(this)"/>
+        <div class="form-error" id="suUsernameErr"></div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Email Address</label>
+        <input class="form-input" id="suEmail" type="email" placeholder="you@example.com" autocomplete="email"/>
+        <div class="form-error" id="suEmailErr"></div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Password</label>
+        <input class="form-input" id="suPassword" type="password" placeholder="Min 8 characters" autocomplete="new-password" oninput="checkPwStrength(this.value)"/>
+        <div class="pw-strength"><div class="pw-bar"><div class="pw-fill" id="pwFill" style="width:0%"></div></div><div class="pw-label" id="pwLabel">Enter a password</div></div>
+        <div class="form-error" id="suPasswordErr"></div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Confirm Password</label>
+        <input class="form-input" id="suConfirm" type="password" placeholder="Repeat your password" autocomplete="new-password"/>
+        <div class="form-error" id="suConfirmErr"></div>
+      </div>
+      <button class="form-btn" id="signupBtn" onclick="handleSignUp()">Create Account</button>
+      <div class="auth-switch">Already have an account? <button onclick="switchTab('signin')">Sign in</button></div>
+    </div>
+    <!-- FORGOT -->
+    <div id="forgotForm" style="display:none">
+      <div style="margin-bottom:20px"><button onclick="switchTab('signin')" class="link-btn">← Back to Sign In</button></div>
+      <div class="modal-title" style="font-size:1.4rem;margin-bottom:6px">Reset Password</div>
+      <div class="modal-sub">Enter your email and we'll send a reset link.</div>
+      <div class="form-group">
+        <label class="form-label">Email Address</label>
+        <input class="form-input" id="fpEmail" type="email" placeholder="you@example.com"/>
+        <div class="form-error" id="fpEmailErr"></div>
+      </div>
+      <button class="form-btn" id="fpBtn" onclick="handleForgotPassword()">Send Reset Link</button>
+    </div>
+    <!-- SUCCESS -->
+    <div id="authSuccess" style="display:none">
+      <div class="auth-success">
+        <div class="check"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#2ed573" stroke-width="3" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg></div>
+        <h3 id="successTitle">Done!</h3>
+        <p id="successMsg"></p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- NAV -->
+<nav class="nav">
+  <a class="logo" href="#" onclick="goHome();return false;">
+    <svg width="36" height="36" viewBox="0 0 36 36" fill="none"><rect width="36" height="36" rx="9" fill="#e8ff47"/><path d="M21 5L9 21h9.5l-3.5 10.5L28 15H18.5L21 5Z" fill="#000"/></svg>
+    <div class="logo-text">Zap<span>Play</span></div>
+  </a>
+  <div class="nsearch">
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" style="position:absolute;left:12px;top:50%;transform:translateY(-50%);color:var(--t3);pointer-events:none"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+    <input type="text" id="searchInput" placeholder="Search games, categories…" oninput="handleSearch(this.value)"/>
+  </div>
+  <div class="nlinks">
+    <button class="nl on" onclick="goHome();setNA(this)">Home</button>
+    <button class="nl" onclick="filterCat('__hot__');setNA(this)">Trending</button>
+    <button class="nl" onclick="filterCat('__new__');setNA(this)">New</button>
+    <button class="nl" onclick="goFavs();setNA(this)">Favorites</button>
+  </div>
+  <div class="nend">
+    <button class="ibtn" onclick="toggleTheme()" id="themeBtn">
+      <svg id="themeIcon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+    </button>
+    <div id="navLoggedOut" style="display:flex;gap:8px">
+      <button class="btn bg" onclick="openAuth('signin')">Sign In</button>
+      <button class="btn ba" onclick="openAuth('signup')">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" y1="8" x2="19" y2="14"/><line x1="22" y1="11" x2="16" y2="11"/></svg>
+        Join Free
+      </button>
+    </div>
+    <div id="navLoggedIn" class="nav-user-menu" style="display:none">
+      <div class="nav-avatar" id="navAvatar" onclick="toggleUserMenu()">?</div>
+      <div class="user-dropdown" id="userDropdown">
+        <div class="ud-header">
+          <div class="ud-name" id="udName"></div>
+          <div class="ud-email" id="udEmail"></div>
+        </div>
+        <button class="ud-item" onclick="goProfile();toggleUserMenu()">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+          My Profile
+        </button>
+        <button class="ud-item" onclick="goFavs();toggleUserMenu()">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>
+          Favorites
+        </button>
+        <button class="ud-item" onclick="goRecent();toggleUserMenu()">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+          Recently Played
+        </button>
+        <button class="ud-item danger" onclick="handleSignOut()">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+          Sign Out
+        </button>
+      </div>
+    </div>
+  </div>
+</nav>
+
+<!-- LAYOUT -->
+<div class="layout">
+  <aside class="sidebar">
+    <div class="sbl">Browse</div>
+    <div id="sbCats"></div>
+    <div class="sdiv"></div>
+    <div class="sbl">Library</div>
+    <button class="citem" onclick="goFavs()">
+      <span class="ci"><svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg></span>
+      Favorites<span class="cc" id="favCount">0</span>
+    </button>
+    <button class="citem" onclick="goRecent()">
+      <span class="ci"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></span>
+      Recently Played
+    </button>
+  </aside>
+
+  <main class="content">
+    <!-- HOME -->
+    <div id="v-home">
+      <div class="hero fu">
+        <div class="hbg"></div><div class="hgrid"></div><div class="hglow1"></div><div class="hglow2"></div>
+        <div class="hinner">
+          <div>
+            <div class="hbadge">
+              <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
+              Free Browser Games
+            </div>
+            <h1 class="htitle">Play Free Games<br/><span class="hl">Instantly.</span></h1>
+            <p class="hsub">No downloads. No sign-up required. Hundreds of HTML5 games ready to play right in your browser.</p>
+            <div class="hacts">
+              <button class="btn ba" id="heroPlayBtn">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+                Play Featured
+              </button>
+              <button class="btn bg" style="color:#fff;border-color:rgba(255,255,255,.18)" onclick="filterCat('All')">All Games</button>
+            </div>
+            <div class="hstats">
+              <div class="hstat"><div class="hv" id="statGames">—</div><div class="hk">Games</div></div>
+              <div class="hstat"><div class="hv">2M+</div><div class="hk">Players</div></div>
+              <div class="hstat"><div class="hv">100%</div><div class="hk">Free</div></div>
+            </div>
+          </div>
+          <div class="hcardwrap">
+            <div class="hcard">
+              <img src="https://picsum.photos/seed/hero42/590/370" alt="Featured" id="heroImg"/>
+              <div class="hbar">
+                <div><div class="hct" id="heroTitle">Loading…</div><div class="hcs" id="heroMeta"></div></div>
+                <button class="hplay" id="heroPlayBtn2">
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div id="sec-recent" class="section" style="display:none">
+        <div class="shead"><div class="stitle"><div class="sicon hi"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--ac)" stroke-width="2.2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></div>Recently Played</div></div>
+        <div class="gg" id="g-recent"></div>
+      </div>
+
+      <div class="section">
+        <div class="shead"><div class="stitle"><div class="sicon hi"><svg width="13" height="13" viewBox="0 0 24 24" fill="var(--ac)"><path d="M12 2c0 0-6 8-6 13a6 6 0 0 0 12 0c0-5-6-13-6-13z"/></svg></div>Trending Now</div><button class="sall" onclick="filterCat('__hot__')">View all ›</button></div>
+        <div class="gg" id="g-trending"></div>
+      </div>
+
+      <div class="section">
+        <div class="shead"><div class="stitle"><div class="sicon"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--t2)" stroke-width="2.2" stroke-linecap="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg></div>New Arrivals</div><button class="sall" onclick="filterCat('__new__')">View all ›</button></div>
+        <div class="gg" id="g-new"></div>
+      </div>
+
+      <div class="section">
+        <div class="shead"><div class="stitle"><div class="sicon"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--t2)" stroke-width="2.2" stroke-linecap="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg></div>Action Games</div><button class="sall" onclick="filterCat('Action')">View all ›</button></div>
+        <div class="gg" id="g-action"></div>
+      </div>
+
+      <div class="section">
+        <div class="shead"><div class="stitle"><div class="sicon"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--t2)" stroke-width="2.2" stroke-linecap="round"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></svg></div>Puzzle Games</div><button class="sall" onclick="filterCat('Puzzle')">View all ›</button></div>
+        <div class="gg" id="g-puzzle"></div>
+      </div>
+
+      <div class="section">
+        <div class="shead"><div class="stitle"><div class="sicon"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--t2)" stroke-width="2.2" stroke-linecap="round"><path d="M5 17H3a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v9h-2"/><circle cx="7" cy="17" r="2"/><circle cx="17" cy="17" r="2"/></svg></div>Casual Games</div><button class="sall" onclick="filterCat('Casual')">View all ›</button></div>
+        <div class="gg" id="g-racing"></div>
+      </div>
+    </div>
+
+    <!-- PLAYER -->
+    <div id="v-player" class="pvw">
+      <button class="backbtn" onclick="goHome()">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
+        Back to Games
+      </button>
+      <div class="plyout">
+        <div>
+          <div class="pframe" id="playerFrame"></div>
+          <div class="pctrl">
+            <button class="btn ba" onclick="doFullscreen()">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/></svg>
+              Fullscreen
+            </button>
+            <button class="btn bg" id="favPBtn" onclick="favFromPlayer()">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>
+              Favorite
+            </button>
+            <button class="btn bg" onclick="navigator.share&&navigator.share({title:document.title,url:location.href})">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
+              Share
+            </button>
+          </div>
+          <div class="pmeta" id="playerMeta"></div>
+        </div>
+        <div class="relpanel">
+          <div class="pslabel">Related Games</div>
+          <div id="relList"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- SEARCH -->
+    <div id="v-search" style="display:none">
+      <div class="vhead"><div class="vtitle">Results</div><div class="vcount" id="srchInfo"></div></div>
+      <div class="gg" id="g-search"></div>
+    </div>
+
+    <!-- CAT -->
+    <div id="v-cat" style="display:none">
+      <div class="vhead"><div class="vtitle" id="catTitle"></div><div class="vcount" id="catCount"></div></div>
+      <div class="gg" id="g-cat"></div>
+    </div>
+
+    <!-- FAVS -->
+    <div id="v-fav" style="display:none">
+      <div class="vhead"><div class="vtitle">Favorites</div></div>
+      <div id="favContent"></div>
+    </div>
+
+    <!-- RECENT -->
+    <div id="v-recent" style="display:none">
+      <div class="vhead"><div class="vtitle">Recently Played</div></div>
+      <div class="gg" id="g-recent-full"></div>
+    </div>
+
+    <!-- PROFILE -->
+    <div id="v-profile" style="display:none">
+      <div class="vhead"><div class="vtitle">My Profile</div></div>
+      <div id="profileContent"></div>
+    </div>
+  </main>
+</div>
+
+<footer class="footer">
+  <div class="fbrand">
+    <svg width="20" height="20" viewBox="0 0 36 36" fill="none"><rect width="36" height="36" rx="9" fill="#e8ff47"/><path d="M21 5L9 21h9.5l-3.5 10.5L28 15H18.5L21 5Z" fill="#000"/></svg>
+    Zap<span>Play</span>
+  </div>
+  <div class="flinks">
+    <a href="#">About</a><a href="#">Privacy</a><a href="#">Terms</a><a href="#">Contact</a>
+  </div>
+  <div class="fcopy">© 2026 ZapPlay. All rights reserved.</div>
+</footer>
+
+<div class="toast" id="toast">
+  <div class="ticon"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="var(--ac)" stroke-width="3" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg></div>
+  <span id="toastMsg"></span>
+</div>
+
+<script type="module" src="/public/app.js"></script>
+</body>
+</html>

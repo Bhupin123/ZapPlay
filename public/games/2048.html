@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>2048 — ZapPlay</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#0a0a0f;display:flex;align-items:center;justify-content:center;min-height:100vh;font-family:'Segoe UI',sans-serif;overflow:hidden;user-select:none}
+#wrap{display:flex;flex-direction:column;align-items:center;gap:14px;padding:16px}
+#hud{display:flex;gap:12px}
+.hbox{background:#1a1a2e;border:1px solid #2a2a3e;border-radius:10px;padding:8px 20px;text-align:center;min-width:80px}
+.hlabel{font-size:.65rem;text-transform:uppercase;letter-spacing:.1em;color:#555;margin-bottom:2px}
+.hval{font-size:1.3rem;font-weight:800;color:#e8ff47}
+#board{background:#1a1a2e;border-radius:14px;padding:10px;display:grid;grid-template-columns:repeat(4,1fr);gap:10px;border:2px solid #2a2a3e}
+.cell{width:82px;height:82px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-weight:900;font-size:1.6rem;background:#0e0e1c;color:transparent;transition:all .1s;border:1px solid #2a2a3e}
+.cell[data-v="2"]  {background:#1e3a1e;color:#7fff7f;font-size:1.8rem}
+.cell[data-v="4"]  {background:#1e4a1e;color:#5ff75f;font-size:1.8rem}
+.cell[data-v="8"]  {background:#3a3a0a;color:#e8ff47;font-size:1.8rem}
+.cell[data-v="16"] {background:#4a2a0a;color:#ffaa44}
+.cell[data-v="32"] {background:#5a1a0a;color:#ff8844}
+.cell[data-v="64"] {background:#6a0a0a;color:#ff6644}
+.cell[data-v="128"]{background:#1a1a6a;color:#aaaaff;font-size:1.4rem}
+.cell[data-v="256"]{background:#0a2a6a;color:#88aaff;font-size:1.4rem}
+.cell[data-v="512"]{background:#0a1a6a;color:#66aaff;font-size:1.2rem}
+.cell[data-v="1024"]{background:#2a0a6a;color:#cc88ff;font-size:1rem}
+.cell[data-v="2048"]{background:#e8ff47;color:#000;font-size:1rem;box-shadow:0 0 30px rgba(232,255,71,.5)}
+#btns{display:flex;gap:10px}
+.gbtn{padding:10px 24px;border-radius:10px;border:1px solid #2a2a3e;background:#1a1a2e;color:#ccc;font-size:.9rem;font-weight:600;cursor:pointer;transition:all .15s}
+.gbtn:hover{background:#e8ff47;color:#000;border-color:#e8ff47}
+#overlay{position:fixed;inset:0;background:rgba(0,0,0,.8);display:flex;align-items:center;justify-content:center;z-index:10;display:none}
+.obox{background:#1a1a2e;border:1px solid #2a2a3e;border-radius:20px;padding:40px;text-align:center;display:flex;flex-direction:column;gap:16px;align-items:center}
+.obox h2{font-size:2rem;font-weight:900;color:#e8ff47}
+.obox p{color:#888;font-size:.95rem}
+.obox .score{font-size:1.5rem;font-weight:800;color:#fff}
+.obox button{padding:12px 32px;background:#e8ff47;color:#000;border:none;border-radius:10px;font-size:1rem;font-weight:800;cursor:pointer}
+#swipe-area{position:fixed;inset:0;z-index:1}
+</style>
+</head>
+<body>
+<div id="swipe-area"></div>
+<div id="wrap">
+  <div id="hud">
+    <div class="hbox"><div class="hlabel">Score</div><div class="hval" id="score">0</div></div>
+    <div class="hbox"><div class="hlabel">Best</div><div class="hval" id="best">0</div></div>
+    <div class="hbox"><div class="hlabel">Moves</div><div class="hval" id="moves">0</div></div>
+  </div>
+  <div id="board"></div>
+  <div id="btns">
+    <button class="gbtn" onclick="newGame()">🔄 New Game</button>
+    <button class="gbtn" onclick="undo()">↩ Undo</button>
+  </div>
+</div>
+<div id="overlay">
+  <div class="obox">
+    <h2 id="oTitle">GAME OVER</h2>
+    <p id="oMsg">No more moves available!</p>
+    <div class="score" id="oScore"></div>
+    <button onclick="newGame();document.getElementById('overlay').style.display='none'">Play Again</button>
+  </div>
+</div>
+
+<script>
+let grid, score, best, moves, prev;
+
+function newGame() {
+  grid = Array(4).fill(null).map(() => Array(4).fill(0));
+  score = 0; moves = 0; prev = null;
+  addTile(); addTile();
+  render();
+}
+
+function addTile() {
+  const empty = [];
+  for (let r=0;r<4;r++) for (let c=0;c<4;c++) if (!grid[r][c]) empty.push([r,c]);
+  if (!empty.length) return;
+  const [r,c] = empty[Math.floor(Math.random()*empty.length)];
+  grid[r][c] = Math.random() < 0.9 ? 2 : 4;
+}
+
+function render() {
+  const board = document.getElementById('board');
+  board.innerHTML = '';
+  for (let r=0;r<4;r++) for (let c=0;c<4;c++) {
+    const cell = document.createElement('div');
+    cell.className = 'cell';
+    const v = grid[r][c];
+    if (v) { cell.textContent = v; cell.setAttribute('data-v', v); }
+    board.appendChild(cell);
+  }
+  document.getElementById('score').textContent = score;
+  document.getElementById('moves').textContent = moves;
+  best = Math.max(best, score);
+  localStorage.setItem('zp_2048_best', best);
+  document.getElementById('best').textContent = best;
+}
+
+function slide(row) {
+  let arr = row.filter(v => v);
+  let merged = false;
+  for (let i=0;i<arr.length-1;i++) {
+    if (arr[i]===arr[i+1] && !merged) {
+      arr[i] *= 2; score += arr[i]; arr.splice(i+1,1); merged = true;
+    } else merged = false;
+  }
+  while (arr.length < 4) arr.push(0);
+  return arr;
+}
+
+function move(dir) {
+  prev = { grid: grid.map(r=>[...r]), score, moves };
+  let moved = false;
+  const g = grid.map(r=>[...r]);
+
+  if (dir==='left')  { for(let r=0;r<4;r++){const s=slide(g[r]);if(s.join()!==g[r].join())moved=true;g[r]=s;} }
+  if (dir==='right') { for(let r=0;r<4;r++){const s=slide([...g[r]].reverse()).reverse();if(s.join()!==g[r].join())moved=true;g[r]=s;} }
+  if (dir==='up') {
+    for(let c=0;c<4;c++){
+      const col=g.map(r=>r[c]);const s=slide(col);
+      s.forEach((v,r)=>{if(v!==col[r])moved=true;g[r][c]=v;});
+    }
+  }
+  if (dir==='down') {
+    for(let c=0;c<4;c++){
+      const col=g.map(r=>r[c]);const s=slide([...col].reverse()).reverse();
+      s.forEach((v,r)=>{if(v!==col[r])moved=true;g[r][c]=v;});
+    }
+  }
+
+  if (moved) {
+    grid = g; moves++;
+    addTile(); render();
+    if (grid.some(r=>r.includes(2048))) showWin();
+    else if (!canMove()) showLose();
+  }
+}
+
+function undo() {
+  if (!prev) return;
+  grid=prev.grid; score=prev.score; moves=prev.moves; prev=null;
+  render();
+}
+
+function canMove() {
+  for(let r=0;r<4;r++) for(let c=0;c<4;c++) {
+    if(!grid[r][c]) return true;
+    if(c<3&&grid[r][c]===grid[r][c+1]) return true;
+    if(r<3&&grid[r][c]===grid[r+1][c]) return true;
+  }
+  return false;
+}
+
+function showWin() {
+  document.getElementById('oTitle').textContent = '🎉 YOU WIN!';
+  document.getElementById('oMsg').textContent = 'You reached 2048!';
+  document.getElementById('oScore').textContent = 'Score: ' + score;
+  document.getElementById('overlay').style.display = 'flex';
+}
+function showLose() {
+  document.getElementById('oTitle').textContent = 'GAME OVER';
+  document.getElementById('oMsg').textContent = 'No more moves!';
+  document.getElementById('oScore').textContent = 'Score: ' + score;
+  document.getElementById('overlay').style.display = 'flex';
+}
+
+// Keyboard
+document.addEventListener('keydown', e => {
+  const map = {ArrowLeft:'left',ArrowRight:'right',ArrowUp:'up',ArrowDown:'down',a:'left',d:'right',w:'up',s:'down'};
+  if (map[e.key]) { move(map[e.key]); e.preventDefault(); }
+});
+
+// Touch/swipe
+let tx, ty;
+const sw = document.getElementById('swipe-area');
+sw.addEventListener('touchstart', e => { tx=e.touches[0].clientX; ty=e.touches[0].clientY; }, {passive:true});
+sw.addEventListener('touchend', e => {
+  const dx = e.changedTouches[0].clientX-tx, dy = e.changedTouches[0].clientY-ty;
+  if (Math.abs(dx)<20&&Math.abs(dy)<20) return;
+  if (Math.abs(dx)>Math.abs(dy)) move(dx>0?'right':'left');
+  else move(dy>0?'down':'up');
+}, {passive:true});
+
+best = parseInt(localStorage.getItem('zp_2048_best')||'0');
+newGame();
+</script>
+</body>
+</html>
